@@ -1,0 +1,110 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() { 
+      return request.auth != null; 
+    }
+    
+    function userEmail() { 
+      return request.auth.token.email.lower(); 
+    }
+    
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    function isAdmin() {
+      return isSignedIn() && (
+        userEmail() == "laecristobalgalvan@gmail.com" || 
+        (exists(/databases/$(database)/documents/users/$(userEmail())) && 
+         get(/databases/$(database)/documents/users/$(userEmail())).data.role == 'gerente')
+      );
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'name', 'email', 'role']) && 
+             data.id is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.email is string && data.email.size() <= 100 &&
+             data.role in ['asesor', 'gerente'];
+    }
+
+    match /users/{email} {
+      allow read: if isSignedIn();
+      allow create: if isSelfRegistrationForAdmin(email) || (isAdmin() && isValidUser(incoming()));
+      allow update: if (isAdmin() || (email == userEmail() && incoming().diff(existing()).affectedKeys().hasOnly(['name'])))
+                    && isValidUser(incoming());
+      allow delete: if isAdmin() && email != userEmail();
+    }
+    
+    function isSelfRegistrationForAdmin(email) {
+      return email == userEmail() && userEmail() == "laecristobalgalvan@gmail.com" && isValidUser(incoming());
+    }
+
+    match /config/main {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() &&
+                   incoming().keys().hasAll(['shiftNames']) &&
+                   incoming().shiftNames is map &&
+                   incoming().shiftNames.keys().hasAll(['Campo Editable 1', 'Campo Editable 2', 'Campo Editable 3']) &&
+                   incoming().shiftNames['Campo Editable 1'] is string &&
+                   incoming().shiftNames['Campo Editable 2'] is string &&
+                   incoming().shiftNames['Campo Editable 3'] is string;
+    }
+
+    match /guardias/{guardiaId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (isAdmin() || incoming().userId == userEmail()) && 
+                    incoming().keys().hasAll(['id', 'date', 'shift', 'userId']) &&
+                    incoming().id is string &&
+                    incoming().date is string && incoming().date.size() == 10 &&
+                    incoming().shift is string && incoming().shift.size() <= 50 &&
+                    incoming().userId is string && incoming().userId.size() <= 100;
+      allow delete: if isAdmin() || existing().userId == userEmail();
+    }
+
+    function isValidLead(data) {
+        return data.keys().hasAll(['id', 'date', 'userId', 'clientName', 'phone', 'email', 'carType', 'status']) &&
+               data.id is string &&
+               data.date is string && data.date.size() == 10 &&
+               data.userId is string && data.userId.size() <= 100 &&
+               data.clientName is string && data.clientName.size() <= 100 &&
+               data.phone is string && data.phone.size() <= 20 &&
+               data.email is string && data.email.size() <= 100 &&
+               data.carType is string && data.carType.size() <= 60 &&
+               data.status in ['Nuevo', 'Negociacion', 'Credito', 'Venta', 'Finalizado'];
+    }
+
+    match /leads/{leadId} {
+      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == userEmail());
+      allow create: if isSignedIn() && (isAdmin() || incoming().userId == userEmail()) && isValidLead(incoming());
+      allow update: if isSignedIn() && (isAdmin() || existing().userId == userEmail()) &&
+                    (incoming().userId == existing().userId) && isValidLead(incoming());
+      allow delete: if isAdmin() || existing().userId == userEmail();
+    }
+
+    function isValidActivity(data) {
+        return data.keys().hasAll(['id', 'leadId', 'userId', 'date', 'type', 'comment', 'status']) &&
+               data.id is string &&
+               data.leadId is string && data.leadId.size() <= 100 &&
+               data.userId is string && data.userId.size() <= 100 &&
+               data.date is string && data.date.size() == 10 &&
+               data.type is string && data.type.size() <= 50 &&
+               data.comment is string && data.comment.size() <= 500 &&
+               data.status in ['Pendiente', 'Completado'];
+    }
+
+    match /activities/{activityId} {
+      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == userEmail());
+      allow create: if isSignedIn() && (isAdmin() || incoming().userId == userEmail()) && isValidActivity(incoming());
+      allow update: if isSignedIn() && (isAdmin() || existing().userId == userEmail()) &&
+                    (incoming().userId == existing().userId) && isValidActivity(incoming());
+      allow delete: if isAdmin() || existing().userId == userEmail();
+    }
+  }
+}
+

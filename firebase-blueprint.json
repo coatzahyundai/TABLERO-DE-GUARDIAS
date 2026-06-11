@@ -1,0 +1,92 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "App user (Manager or Asesor)",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["gerente", "asesor"] }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "Guardia": {
+      "title": "Guardia",
+      "description": "A shift scheduled for an asesor",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string" },
+        "shift": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["date", "shift", "userId"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "A potential client/sale",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string" },
+        "userId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "carType": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["date", "userId", "clientName", "phone", "carType", "status"]
+    },
+    "Activity": {
+      "title": "Activity",
+      "description": "Interaction for a lead",
+      "type": "object",
+      "properties": {
+        "leadId": { "type": "string" },
+        "userId": { "type": "string" },
+        "date": { "type": "string" },
+        "type": { "type": "string" },
+        "comment": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["leadId", "userId", "date", "type", "comment", "status"]
+    },
+    "Config": {
+      "title": "Config",
+      "description": "Global settings",
+      "type": "object",
+      "properties": {
+        "shiftNames": {
+          "type": "object",
+          "properties": {
+            "Campo Editable 1": { "type": "string" },
+            "Campo Editable 2": { "type": "string" },
+            "Campo Editable 3": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Users collection"
+    },
+    "/guardias/{guardiaId}": {
+      "schema": { "$ref": "#/entities/Guardia" },
+      "description": "Shift guardias"
+    },
+    "/leads/{leadId}": {
+      "schema": { "$ref": "#/entities/Lead" },
+      "description": "Prospects and tracking"
+    },
+    "/activities/{activityId}": {
+      "schema": { "$ref": "#/entities/Activity" },
+      "description": "Actions performed on leads"
+    },
+    "/config/{configId}": {
+      "schema": { "$ref": "#/entities/Config" },
+      "description": "Application configuration"
+    }
+  }
+}
