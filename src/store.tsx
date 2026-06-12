@@ -4,7 +4,7 @@ import { db, auth } from './lib/firebase';
 import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
-import { addDays, format } from 'date-fns';
+import { addDays, format, parseISO } from 'date-fns';
 
 interface AppState {
   users: User[];
@@ -127,9 +127,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Error al iniciar sesión.");
+      alert("Error al iniciar sesión: " + e.message);
     }
   };
 
@@ -138,22 +138,28 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const addLead = async (leadData: Omit<Lead, 'id'>) => {
-    const newId = uuidv4();
-    await setDoc(doc(db, 'leads', newId), { ...leadData, id: newId });
+    try {
+      const newId = uuidv4();
+      await setDoc(doc(db, 'leads', newId), { ...leadData, id: newId });
 
-    // Auto activities
-    const date7 = format(addDays(new Date(leadData.date), 7), 'yyyy-MM-dd');
-    const date30 = format(addDays(new Date(leadData.date), 30), 'yyyy-MM-dd');
+      // Auto activities
+      const parsedDate = parseISO(leadData.date);
+      const date7 = format(addDays(parsedDate, 7), 'yyyy-MM-dd');
+      const date30 = format(addDays(parsedDate, 30), 'yyyy-MM-dd');
 
-    const act1Id = uuidv4();
-    await setDoc(doc(db, 'activities', act1Id), {
-      id: act1Id, leadId: newId, userId: leadData.userId, date: date7, type: 'FollowUp', status: 'Pendiente', comment: '¿Quieres que actualicemos el estatus de tu lead?'
-    });
+      const act1Id = uuidv4();
+      await setDoc(doc(db, 'activities', act1Id), {
+        id: act1Id, leadId: newId, userId: leadData.userId, date: date7, type: 'FollowUp', status: 'Pendiente', comment: '¿Quieres que actualicemos el estatus de tu lead?'
+      });
 
-    const act2Id = uuidv4();
-    await setDoc(doc(db, 'activities', act2Id), {
-      id: act2Id, leadId: newId, userId: leadData.userId, date: date30, type: 'FollowUp', status: 'Pendiente', comment: 'Este es un buen momento para actualizar tu lead'
-    });
+      const act2Id = uuidv4();
+      await setDoc(doc(db, 'activities', act2Id), {
+        id: act2Id, leadId: newId, userId: leadData.userId, date: date30, type: 'FollowUp', status: 'Pendiente', comment: 'Este es un buen momento para actualizar tu lead'
+      });
+    } catch (error) {
+      console.error("Error adding lead:", error);
+      alert("Error al agregar cliente. Revisa los datos y vuelve a intentarlo.");
+    }
   };
 
   const updateLeadStatus = async (leadId: string, status: Lead['status']) => {

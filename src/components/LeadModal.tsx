@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { useStore } from '../store';
 import { Lead } from '../types';
 
-export const LeadModal: React.FC<{ date: string; onClose: () => void }> = ({ date, onClose }) => {
+import { format } from 'date-fns';
+
+export const LeadModal: React.FC<{ date?: string; onClose: () => void }> = ({ date, onClose }) => {
   const { currentUser, addLead } = useStore();
+  const actualDate = date || format(new Date(), 'yyyy-MM-dd');
   const [formData, setFormData] = useState<Omit<Lead, 'id' | 'userId' | 'date'>>({
     clientName: '',
     phone: '',
@@ -17,7 +20,7 @@ export const LeadModal: React.FC<{ date: string; onClose: () => void }> = ({ dat
     if (!currentUser) return;
 
     addLead({
-      date,
+      date: actualDate,
       userId: currentUser.id,
       clientName: formData.clientName,
       phone: formData.phone,
@@ -33,7 +36,7 @@ export const LeadModal: React.FC<{ date: string; onClose: () => void }> = ({ dat
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="p-6 border-b border-slate-100">
           <h3 className="text-xl font-bold text-slate-800">Registrar Prospecto</h3>
-          <p className="text-sm text-slate-500 mt-1">Guardia: {date} · Asesor: {currentUser?.name}</p>
+          <p className="text-sm text-slate-500 mt-1">Fecha: {actualDate} · Asesor: {currentUser?.name}</p>
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-4">

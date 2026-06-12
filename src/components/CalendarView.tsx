@@ -227,7 +227,7 @@ export const CalendarView: React.FC = () => {
             {monthDays.map((date, i) => {
               const dateStr = format(date, 'yyyy-MM-dd');
               const dayActivities = visibleActivities.filter(a => a.date === dateStr);
-              const dayGuardias = guardias.filter(g => g.date === dateStr);
+              const dayGuardias = guardias.filter(g => g.date === dateStr).sort((a, b) => SHIFTS.indexOf(a.shift) - SHIFTS.indexOf(b.shift));
               const isCurrentMonth = isSameMonth(date, currentDate);
               
               return (
