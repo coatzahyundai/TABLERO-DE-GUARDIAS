@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Guardia, Lead, Activity } from './types';
+import { User, Guardia, Lead, Activity, DailyEvent } from './types';
 import { db, auth } from './lib/firebase';
 import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -9,6 +9,7 @@ import { addDays, format, parseISO } from 'date-fns';
 interface AppState {
   users: User[];
   guardias: Guardia[];
+  dailyEvents: DailyEvent[];
   leads: Lead[];
   activities: Activity[];
   currentUser: User | null;
@@ -16,6 +17,7 @@ interface AppState {
   login: () => Promise<void>;
   logout: () => void;
   addLead: (lead: Omit<Lead, 'id'>) => void;
+  updateLead: (id: string, updates: Partial<Lead>) => void;
   updateLeadStatus: (leadId: string, status: Lead['status']) => void;
   removeLead: (id: string) => void;
   addActivity: (activity: Omit<Activity, 'id'>) => void;
@@ -26,6 +28,8 @@ interface AppState {
   updateUser: (id: string, updates: Partial<User>) => void;
   removeUser: (id: string) => void;
   updateShiftName: (key: string, name: string) => void;
+  setDailyEvent: (date: string, text: string) => Promise<void>;
+  removeDailyEvent: (id: string) => Promise<void>;
   isLoadingAuth: boolean;
   firebaseUser: FirebaseUser | null;
 }
@@ -40,6 +44,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     'Campo Editable 3': 'Campo Editable 3'
   });
   const [guardias, setGuardias] = useState<Guardia[]>([]);
+  const [dailyEvents, setDailyEvents] = useState<DailyEvent[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   
@@ -106,6 +111,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setGuardias(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Guardia)));
     }, (error) => console.error("Error fetching guardias:", error)));
 
+    // Sync daily events
+    unsubs.push(onSnapshot(collection(db, 'dailyEvents'), (snapshot) => {
+      setDailyEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DailyEvent)));
+    }, (error) => console.error("Error fetching dailyEvents:", error)));
+
     // Sync leads
     const leadsQuery = isGerente ? collection(db, 'leads') : query(collection(db, 'leads'), where('userId', '==', currentUser.id));
     unsubs.push(onSnapshot(leadsQuery, (snapshot) => {
@@ -166,6 +176,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await updateDoc(doc(db, 'leads', leadId), { status });
   };
 
+  const updateLead = async (id: string, updates: Partial<Lead>) => {
+    await updateDoc(doc(db, 'leads', id), updates);
+  };
+
   const removeLead = async (id: string) => {
     if (window.confirm('¿Seguro que deseas eliminar este prospecto? Se borrará de forma permanente junto con sus actividades.')) {
       await deleteDoc(doc(db, 'leads', id));
@@ -219,11 +233,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await setDoc(doc(db, 'config', 'main'), { shiftNames: newShifts }, { merge: true });
   };
 
+  const setDailyEvent = async (date: string, text: string) => {
+    // If an event exists for this date, update it, otherwise create
+    const existing = dailyEvents.find(e => e.date === date);
+    if (existing) {
+      await updateDoc(doc(db, 'dailyEvents', existing.id), { text });
+    } else {
+      const id = uuidv4();
+      await setDoc(doc(db, 'dailyEvents', id), { id, date, text });
+    }
+  };
+
+  const removeDailyEvent = async (id: string) => {
+    await deleteDoc(doc(db, 'dailyEvents', id));
+  };
+
   return (
     <StoreContext.Provider value={{
-      users, guardias, leads, activities, currentUser, shiftNames,
-      login, logout, addLead, updateLeadStatus, removeLead, addActivity, updateActivity, assignGuardia, removeGuardia,
-      addUser, updateUser, removeUser, updateShiftName, isLoadingAuth, firebaseUser
+      users, guardias, dailyEvents, leads, activities, currentUser, shiftNames,
+      login, logout, addLead, updateLead, updateLeadStatus, removeLead, addActivity, updateActivity, assignGuardia, removeGuardia,
+      addUser, updateUser, removeUser, updateShiftName, setDailyEvent, removeDailyEvent, isLoadingAuth, firebaseUser
     }}>
       {children}
     </StoreContext.Provider>

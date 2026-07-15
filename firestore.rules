@@ -67,6 +67,11 @@ service cloud.firestore {
       allow delete: if isAdmin() || existing().userId == userEmail();
     }
 
+    match /dailyEvents/{eventId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     function isValidLead(data) {
         return data.keys().hasAll(['id', 'date', 'userId', 'clientName', 'phone', 'email', 'carType', 'status']) &&
                data.id is string &&

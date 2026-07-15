@@ -4,7 +4,7 @@ import { Lead, Activity, LeadStatus } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, LabelList } from 'recharts';
 import { format, parseISO, startOfMonth, getMonth, getYear } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Trash2, MessageCircle } from 'lucide-react';
+import { Trash2, MessageCircle, Edit } from 'lucide-react';
 import { LeadModal } from './LeadModal';
 
 const normalizeCarType = (car: string) => {
@@ -39,6 +39,7 @@ export const ReportsView: React.FC = () => {
   // Modals
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
+  const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
 
   const isManager = currentUser?.role === 'gerente';
 
@@ -73,10 +74,11 @@ export const ReportsView: React.FC = () => {
   if (searchTerm) {
     const term = searchTerm.toLowerCase();
     filteredLeads = filteredLeads.filter(l => 
-      l.clientName.toLowerCase().includes(term) || 
-      l.phone.includes(term) || 
-      l.status.toLowerCase().includes(term) ||
-      l.carType.toLowerCase().includes(term)
+      (l.clientName && l.clientName.toLowerCase().includes(term)) || 
+      (l.phone && l.phone.toLowerCase().includes(term)) || 
+      (l.status && l.status.toLowerCase().includes(term)) ||
+      (l.carType && l.carType.toLowerCase().includes(term)) ||
+      (l.email && l.email.toLowerCase().includes(term))
     );
   }
 
@@ -85,7 +87,7 @@ export const ReportsView: React.FC = () => {
   
   // Leads by Asesor
   const leadCountsByAsesor = users.filter(u => u.role === 'asesor').map(u => ({
-    name: u.name.split(' ')[0], // short name
+    name: u.name?.split(' ')[0] || '...', // short name
     leads: filteredLeads.filter(l => l.userId === u.id).length
   })).filter(a => a.leads > 0);
 
@@ -125,6 +127,16 @@ export const ReportsView: React.FC = () => {
     window.print();
   };
 
+  const handleEditLead = (lead: Lead) => {
+    setLeadToEdit(lead);
+    setIsLeadModalOpen(true);
+  };
+
+  const closeLeadModal = () => {
+    setIsLeadModalOpen(false);
+    setLeadToEdit(null);
+  };
+
   return (
     <div className="space-y-6 bg-slate-50 min-h-screen pb-12 print:bg-white print:p-0">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0 no-print">
@@ -134,7 +146,7 @@ export const ReportsView: React.FC = () => {
         
         <div className="flex flex-wrap gap-2 items-center">
           <button 
-            onClick={() => setIsLeadModalOpen(true)}
+            onClick={() => { setLeadToEdit(null); setIsLeadModalOpen(true); }}
             className="px-4 py-2 bg-[#002C5F] text-white rounded-lg font-medium text-sm shadow-sm hover:bg-[#001f44] transition no-print"
           >
             + Nuevo Cliente
@@ -256,7 +268,7 @@ export const ReportsView: React.FC = () => {
         <div className="p-4 border-b border-slate-100 flex justify-between items-center no-print">
           <input
             type="text"
-            placeholder="Buscador (Nombre, Teléfono, Status...)"
+            placeholder="Buscador (Nombre, Teléfono, Email, Status...)"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="w-full max-w-md px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#002C5F] outline-none text-sm transition-shadow shadow-sm"
@@ -273,6 +285,7 @@ export const ReportsView: React.FC = () => {
                 {isManager && <th className="p-3 font-medium uppercase tracking-wider text-xs">Asesor</th>}
                 <th className="p-3 font-medium uppercase tracking-wider text-xs">Cliente</th>
                 <th className="p-3 font-medium uppercase tracking-wider text-xs">Teléfono</th>
+                <th className="p-3 font-medium uppercase tracking-wider text-xs">Email</th>
                 <th className="p-3 font-medium uppercase tracking-wider text-xs">Auto</th>
                 <th className="p-3 font-medium uppercase tracking-wider text-xs">Status</th>
                 <th className="p-3 font-medium uppercase tracking-wider text-xs rounded-tr-lg no-print">Acción</th>
@@ -282,9 +295,10 @@ export const ReportsView: React.FC = () => {
               {filteredLeads.map(lead => (
                 <tr key={lead.id} className="border-b last:border-0 border-slate-100 hover:bg-slate-50 transition-colors print:border-b print:border-slate-200 print:break-inside-avoid">
                   <td className="p-3 text-slate-600 tabular-nums">{format(parseISO(lead.date), 'dd/MM/yyyy')}</td>
-                  {isManager && <td className="p-3 text-slate-700">{users.find(u => u.id === lead.userId)?.name.split(' ')[0]}</td>}
+                  {isManager && <td className="p-3 text-slate-700">{users.find(u => u.id === lead.userId)?.name?.split(' ')[0] || '...'}</td>}
                   <td className="p-3 font-medium text-slate-900">{lead.clientName}</td>
                   <td className="p-3 text-slate-600 font-mono text-xs">{lead.phone}</td>
+                  <td className="p-3 text-slate-500 text-xs">{lead.email || '-'}</td>
                   <td className="p-3 text-slate-700">{normalizeCarType(lead.carType)}</td>
                   <td className="p-3">
                     <select 
@@ -315,6 +329,16 @@ export const ReportsView: React.FC = () => {
                         Historial
                       </button>
                       
+                      {isManager && (
+                        <button 
+                          onClick={() => handleEditLead(lead)}
+                          className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 p-1.5 rounded-lg font-medium transition flex items-center justify-center"
+                          title="Editar Prospecto"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      )}
+
                       <a 
                         href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`}
                         target="_blank"
@@ -340,7 +364,7 @@ export const ReportsView: React.FC = () => {
               ))}
               {filteredLeads.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400">
+                  <td colSpan={8} className="p-8 text-center text-slate-400">
                     No se encontraron prospectos.
                   </td>
                 </tr>
@@ -357,7 +381,7 @@ export const ReportsView: React.FC = () => {
           onClose={() => setSelectedLead(null)} 
         />
       )}
-      {isLeadModalOpen && <LeadModal onClose={() => setIsLeadModalOpen(false)} />}
+      {isLeadModalOpen && <LeadModal lead={leadToEdit || undefined} onClose={closeLeadModal} />}
     </div>
   );
 };
@@ -371,7 +395,7 @@ const LeadHistoryModal: React.FC<{ lead: Lead; activities: Activity[]; onClose: 
         <div className="p-6 border-b border-[#001f44] bg-[#002C5F] text-white flex justify-between items-start">
           <div>
             <h3 className="text-xl font-bold">{lead.clientName}</h3>
-            <p className="text-sm text-blue-200 mt-1 whitespace-pre-wrap">Auto: {lead.carType}  |  Contacto: {lead.phone}</p>
+            <p className="text-sm text-blue-200 mt-1 whitespace-pre-wrap">Auto: {lead.carType}  |  Tel: {lead.phone} {lead.email ? ` | Email: ${lead.email}` : ''}</p>
           </div>
           <button onClick={onClose} className="p-2 -mr-2 text-blue-200 hover:text-white rounded-lg transition">
             ✕

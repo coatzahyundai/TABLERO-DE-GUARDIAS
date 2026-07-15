@@ -7,6 +7,12 @@ export interface User {
   role: Role;
 }
 
+export interface DailyEvent {
+  id: string;
+  date: string;
+  text: string;
+}
+
 export type ShiftType = 'Guardia 1' | 'Guardia 2' | 'Guardia 3' | 'Guardia Servicio' | 'Campo Editable 1' | 'Campo Editable 2' | 'Campo Editable 3';
 
 export interface Guardia {

@@ -4,30 +4,40 @@ import { Lead } from '../types';
 
 import { format } from 'date-fns';
 
-export const LeadModal: React.FC<{ date?: string; onClose: () => void }> = ({ date, onClose }) => {
-  const { currentUser, addLead } = useStore();
-  const actualDate = date || format(new Date(), 'yyyy-MM-dd');
+export const LeadModal: React.FC<{ date?: string; lead?: Lead; onClose: () => void }> = ({ date, lead, onClose }) => {
+  const { currentUser, addLead, updateLead } = useStore();
+  const actualDate = lead?.date || date || format(new Date(), 'yyyy-MM-dd');
   const [formData, setFormData] = useState<Omit<Lead, 'id' | 'userId' | 'date'>>({
-    clientName: '',
-    phone: '',
-    email: '',
-    carType: '',
-    status: 'Nuevo'
+    clientName: lead?.clientName || '',
+    phone: lead?.phone || '',
+    email: lead?.email || '',
+    carType: lead?.carType || '',
+    status: lead?.status || 'Nuevo'
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
 
-    addLead({
-      date: actualDate,
-      userId: currentUser.id,
-      clientName: formData.clientName,
-      phone: formData.phone,
-      email: formData.email,
-      carType: formData.carType,
-      status: formData.status
-    });
+    if (lead) {
+      updateLead(lead.id, {
+        clientName: formData.clientName,
+        phone: formData.phone,
+        email: formData.email,
+        carType: formData.carType,
+        status: formData.status
+      });
+    } else {
+      addLead({
+        date: actualDate,
+        userId: currentUser.id,
+        clientName: formData.clientName,
+        phone: formData.phone,
+        email: formData.email,
+        carType: formData.carType,
+        status: formData.status
+      });
+    }
     onClose();
   };
 
@@ -35,7 +45,7 @@ export const LeadModal: React.FC<{ date?: string; onClose: () => void }> = ({ da
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="p-6 border-b border-slate-100">
-          <h3 className="text-xl font-bold text-slate-800">Registrar Prospecto</h3>
+          <h3 className="text-xl font-bold text-slate-800">{lead ? 'Editar Prospecto' : 'Registrar Prospecto'}</h3>
           <p className="text-sm text-slate-500 mt-1">Fecha: {actualDate} · Asesor: {currentUser?.name}</p>
         </div>
         
