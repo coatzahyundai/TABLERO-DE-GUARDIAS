@@ -20,7 +20,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-      <header className="bg-[#002C5F] border-b border-[#001f44] sticky top-0 z-10 text-white">
+      <header className="bg-[#002C5F] border-b border-[#001f44] sticky top-0 z-10 text-white print:hidden">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-8">
             <div className="flex items-center space-x-2">
@@ -69,7 +69,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-8 print:p-0 print:max-w-none print:w-full">
         {currentView === 'calendar' && <CalendarView />}
         {currentView === 'reports' && <ReportsView />}
         {currentView === 'settings' && <SettingsView />}

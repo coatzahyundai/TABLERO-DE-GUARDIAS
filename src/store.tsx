@@ -4,7 +4,13 @@ import { db, auth } from './lib/firebase';
 import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
-import { addDays, format, parseISO } from 'date-fns';
+import { addDays, format, parseISO, isValid } from 'date-fns';
+
+const safeParseISO = (dateStr: string | undefined | null) => {
+  if (!dateStr) return new Date();
+  const parsed = parseISO(dateStr);
+  return isValid(parsed) ? parsed : new Date();
+};
 
 interface AppState {
   users: User[];
@@ -153,7 +159,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await setDoc(doc(db, 'leads', newId), { ...leadData, id: newId });
 
       // Auto activities
-      const parsedDate = parseISO(leadData.date);
+      const parsedDate = safeParseISO(leadData.date);
       const date7 = format(addDays(parsedDate, 7), 'yyyy-MM-dd');
       const date30 = format(addDays(parsedDate, 30), 'yyyy-MM-dd');
 

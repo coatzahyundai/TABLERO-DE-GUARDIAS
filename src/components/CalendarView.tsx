@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
-import { addDays, addMonths, subMonths, format, startOfWeek, isSameDay, startOfMonth, endOfMonth, getDay, isSameMonth, parseISO } from 'date-fns';
+import { addDays, addMonths, subMonths, format, startOfWeek, isSameDay, startOfMonth, endOfMonth, getDay, isSameMonth, parseISO, isValid } from 'date-fns';
+
+const safeParseISO = (dateStr: string | undefined | null) => {
+  if (!dateStr) return new Date();
+  const parsed = parseISO(dateStr);
+  return isValid(parsed) ? parsed : new Date();
+};
 import { es } from 'date-fns/locale';
 import { ShiftType } from '../types';
 import { LeadModal } from './LeadModal';
@@ -165,10 +171,10 @@ export const CalendarView: React.FC = () => {
       {viewType === 'week' ? (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden print:shadow-none print:border-none">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left print:text-xs">
+            <table className="w-full table-fixed text-sm text-left print:text-xs">
               <thead className="bg-[#002C5F] border-b border-[#001f44] text-white print:bg-slate-100 print:text-black">
                 <tr>
-                  <th className="p-4 font-medium w-48 rounded-tl-lg">Turno</th>
+                  <th className="p-4 font-medium w-40 rounded-tl-lg print:p-2 print:w-28">Turno</th>
                   {days.map((date, i) => {
                     const dateStr = format(date, 'yyyy-MM-dd');
                     const event = dailyEvents.find(e => e.date === dateStr);

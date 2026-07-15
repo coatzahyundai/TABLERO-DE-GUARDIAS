@@ -2,7 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { useStore } from '../store';
 import { Lead, Activity, LeadStatus } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, LabelList } from 'recharts';
-import { format, parseISO, startOfMonth, getMonth, getYear } from 'date-fns';
+import { format, parseISO, startOfMonth, getMonth, getYear, isValid } from 'date-fns';
+
+const safeParseISO = (dateStr: string | undefined | null) => {
+  if (!dateStr) return new Date();
+  const parsed = parseISO(dateStr);
+  return isValid(parsed) ? parsed : new Date();
+};
 import { es } from 'date-fns/locale';
 import { Trash2, MessageCircle, Edit } from 'lucide-react';
 import { LeadModal } from './LeadModal';
@@ -48,7 +54,7 @@ export const ReportsView: React.FC = () => {
     if (!leads.length) return [];
     const months = new Set<string>();
     leads.forEach(l => {
-      const d = parseISO(l.date);
+      const d = safeParseISO(l.date);
       months.add(format(d, 'yyyy-MM'));
     });
     return Array.from(months).sort((a, b) => b.localeCompare(a));
@@ -65,7 +71,7 @@ export const ReportsView: React.FC = () => {
     }
     if (selectedMonthYear !== 'all') {
       filteredLeads = filteredLeads.filter(l => {
-        const d = parseISO(l.date);
+        const d = safeParseISO(l.date);
         return format(d, 'yyyy-MM') === selectedMonthYear;
       });
     }
@@ -115,7 +121,7 @@ export const ReportsView: React.FC = () => {
     : filteredLeads;
 
   leadsForTrend.forEach(l => {
-    const m = format(parseISO(l.date), 'MMM yy', { locale: es });
+    const m = format(safeParseISO(l.date), 'MMM yy', { locale: es });
     monthlyMap.set(m, (monthlyMap.get(m) || 0) + 1);
   });
   // Sort theoretically by date:
@@ -160,7 +166,7 @@ export const ReportsView: React.FC = () => {
               >
                 <option value="all">Todos los Meses</option>
                 {availableMonths.map(m => (
-                  <option key={m} value={m}>{format(parseISO(m + '-01'), 'MMMM yyyy', { locale: es })}</option>
+                  <option key={m} value={m}>{format(safeParseISO(m + '-01'), 'MMMM yyyy', { locale: es })}</option>
                 ))}
               </select>
               <select 
@@ -294,7 +300,7 @@ export const ReportsView: React.FC = () => {
             <tbody className="print:text-xs">
               {filteredLeads.map(lead => (
                 <tr key={lead.id} className="border-b last:border-0 border-slate-100 hover:bg-slate-50 transition-colors print:border-b print:border-slate-200 print:break-inside-avoid">
-                  <td className="p-3 text-slate-600 tabular-nums">{format(parseISO(lead.date), 'dd/MM/yyyy')}</td>
+                  <td className="p-3 text-slate-600 tabular-nums">{format(safeParseISO(lead.date), 'dd/MM/yyyy')}</td>
                   {isManager && <td className="p-3 text-slate-700">{users.find(u => u.id === lead.userId)?.name?.split(' ')[0] || '...'}</td>}
                   <td className="p-3 font-medium text-slate-900">{lead.clientName}</td>
                   <td className="p-3 text-slate-600 font-mono text-xs">{lead.phone}</td>
@@ -419,7 +425,7 @@ const LeadHistoryModal: React.FC<{ lead: Lead; activities: Activity[]; onClose: 
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <span className="font-bold text-slate-800 mr-2">{act.type}</span>
-                      <span className="text-xs text-slate-400">{format(parseISO(act.date), 'dd/MM/yyyy')}</span>
+                      <span className="text-xs text-slate-400">{format(safeParseISO(act.date), 'dd/MM/yyyy')}</span>
                     </div>
                     <select
                       value={act.status}

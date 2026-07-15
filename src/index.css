@@ -2,11 +2,16 @@
 
 @layer utilities {
   @media print {
+    @page {
+      size: landscape;
+      margin: 0mm !important;
+    }
     .no-print {
       display: none !important;
     }
     body {
       background-color: white !important;
+      padding: 1cm !important;
     }
     * {
       -webkit-print-color-adjust: exact !important;
